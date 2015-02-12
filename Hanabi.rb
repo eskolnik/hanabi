@@ -87,13 +87,14 @@ class Player
 end
 
 class Board
-  attr_accessor :piles, :deck, :discard, :fuse, :hints
+  attr_accessor :piles, :deck, :discard, :fuse, :hints, :last_turn
   def initialize
     @deck = new_deck
     @discard=[]
     @piles = Hash[$colors.collect {|x| [x,0]}]
     @fuse = 3
     @hints = 8
+    @last_turn=-1
   end
   def legal? card
     piles[card.color] == card.rank.to_i - 1
@@ -116,6 +117,15 @@ class Board
   end
   def mistake
     @fuse -= 1
+  end
+  def complete?
+    return @piles.all? {|c,n| n==5}
+  end
+  def empty_deck?
+    return @deck.size==0
+  end
+  def score
+    return @piles.values.inject(:+)
   end
   
   # return a pile as a string
@@ -146,9 +156,7 @@ end
 
 # TODO
 # Catch illegal input types
-# implement win and lose conditions
 # -- implement mistake detection
-# -- implement deck depletion  
 # -- better display
 # -- >2players
 def gameloop board, active, passive
@@ -210,15 +218,33 @@ def gameloop board, active, passive
       else
         puts "Illegal hint"
       end
-    #DEBUG TOOL 
+    #DEBUG TOOLS 
     #when 'myhand'
-    #  puts "#{active.name}'s Hand: #{active.show_hand}"
+    #  puts "#{active.name}'s Hand: #{active.show_hand}"    
     else
       puts "Try again"
     end
   end
   
-  gameloop board, passive, active
+  #Win/loseconditions
+  if board.fuse <= 0
+    puts "You fuse, you lose. And you're all out of fuse. GAME OVER."
+    puts "Score: #{board.score}"
+  elsif board.complete?
+    puts "All piles complete! Top score!"
+    puts "Score: #{board.score}"
+  elsif board.empty_deck?
+    puts "Deck depleted. One more turn for each player."
+    #numplayers-1
+    board.last_turn=1
+  elsif board.last_turn==0
+    puts "Game over!"
+    puts "Score: #{board.score}"
+  else
+    board.last_turn-=1
+    gameloop board, passive, active
+  end
+ 
 end
 
 main
